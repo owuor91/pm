@@ -80,7 +80,7 @@ def get_board_state_by_user_id(
 
 
 def update_board_state_by_user_id(
-    user_id: int, state: object, db_path: Optional[Path] = None,
+    user_id: int, state: str, db_path: Optional[Path] = None,
 ) -> None:
     with get_connection(db_path) as connection:
         row = connection.execute(
@@ -90,10 +90,9 @@ def update_board_state_by_user_id(
         if row is None:
             raise ValueError("Board not found for user")
 
-        state_json = json.dumps(state)
         connection.execute(
             "UPDATE board_state SET state = ?, updated_at = CURRENT_TIMESTAMP WHERE board_id = ?",
-            (state_json, row["id"]),
+            (state, row["id"]),
         )
         connection.commit()
 
