@@ -121,6 +121,7 @@ __pypackages__/
 
 # Local SQLite database file
 backend/pm.db
+data/
 
 # Celery stuff
 celerybeat-schedule
@@ -176,4 +177,3 @@ cython_debug/
 .pypirc
 
 .DS_Store
-

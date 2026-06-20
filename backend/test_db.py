@@ -1,9 +1,15 @@
-import json
 from pathlib import Path
 
+import json
 import pytest
 
-from backend.db import DB_PATH, get_connection, init_db, update_board_state_by_user_id
+from backend.db import (
+    DEFAULT_BOARD_STATE_OBJECT,
+    DB_PATH,
+    get_connection,
+    init_db,
+    update_board_state_by_user_id,
+)
 
 
 def test_init_db_creates_schema_and_default_user(tmp_path: Path):
@@ -21,7 +27,7 @@ def test_init_db_creates_schema_and_default_user(tmp_path: Path):
 
         board_state = conn.execute("SELECT state FROM board_state WHERE board_id = ?", (board["id"],)).fetchone()
         assert board_state is not None
-        assert json.loads(board_state["state"]) == {"columns": [], "cards": {}}
+        assert json.loads(board_state["state"]) == DEFAULT_BOARD_STATE_OBJECT
 
 
 def test_update_board_state_by_user_id(tmp_path: Path):

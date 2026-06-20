@@ -14,7 +14,7 @@ class AIService:
         """Check if the AI service is properly configured."""
         return bool(self.api_key)
 
-    def call_ai(self, prompt: str) -> str:
+    def call_ai(self, prompt: str, json_mode: bool = False) -> str:
         """Call the OpenRouter AI API with the given prompt."""
         if not self.is_configured():
             raise ValueError("OPENROUTER_API_KEY is not set")
@@ -28,6 +28,9 @@ class AIService:
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
         }
+
+        if json_mode:
+            payload["response_format"] = {"type": "json_object"}
 
         try:
             response = httpx.post(
@@ -57,3 +60,30 @@ class AIService:
                 "error": str(e),
                 "model": self.model,
             }
+
+    def call_ai_with_board_context(self, prompt: str, board_state: dict) -> str:
+        """Call AI with the full board context for structured output."""
+        system_prompt = """You are a helpful Kanban board assistant. The user will give you a command or question about their Kanban board. 
+You can suggest board updates like creating cards, moving cards between columns, or renaming columns.
+
+When the user asks you to make changes to the board, respond with a JSON object containing:
+{
+  "message": "Your response to the user",
+  "boardUpdate": {
+    "newCards": [{"id": "auto-generated-id", "title": "Card title", "details": "Card details", "columnId": "target-column-id"}],
+    "updatedCards": [{"id": "card-id", "title": "New title", "columnId": "new-column-id"}],
+    "deletedCardIds": ["card-id-to-delete"],
+    "updatedColumns": [{"id": "col-id", "title": "New column name"}]
+  },
+  "confidence": 0.95
+}
+
+All fields in boardUpdate are optional. Only include the fields you want to change.
+
+Current board state:
+{board_state}
+
+User request: {prompt}"""
+
+        full_prompt = system_prompt.format(board_state=json.dumps(board_state), prompt=prompt)
+        return self.call_ai(full_prompt, json_mode=True)

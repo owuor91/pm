@@ -10,5 +10,11 @@ cd "$REPO_ROOT"
 
 docker build -t "$IMAGE_NAME" "$REPO_ROOT"
 
-docker run --rm -d -p 8000:8000 --name "$IMAGE_NAME" --env-file "$REPO_ROOT/.env" "$IMAGE_NAME"
+mkdir -p "$REPO_ROOT/data"
+
+docker run --rm -d -p 8000:8000 --name "$IMAGE_NAME" \
+  --env-file "$REPO_ROOT/.env" \
+  -e PM_DB_PATH=/data/pm.db \
+  -v "$REPO_ROOT/data:/data" \
+  "$IMAGE_NAME"
 echo "Started container '$IMAGE_NAME' at http://localhost:8000"

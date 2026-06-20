@@ -20,5 +20,8 @@ COPY backend/ ./backend
 COPY --from=frontend-build /app/frontend/static ./backend/static
 WORKDIR /app
 
+RUN mkdir -p /data
+ENV PM_DB_PATH=/data/pm.db
+
 EXPOSE 8000
 CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
