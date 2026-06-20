@@ -38,3 +38,28 @@ export async function saveBoard(userId: number, state: object) {
 
   return response.json();
 }
+
+export type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+export async function aiChat(userId: number, prompt: string, messages?: ChatMessage[]) {
+  const response = await fetch(`${API_BASE}/api/ai/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, prompt, messages }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to chat with AI");
+  }
+
+  const data = await response.json();
+  return {
+    message: data.message as string,
+    applied: Boolean(data.applied),
+    confidence: typeof data.confidence === "number" ? (data.confidence as number) : undefined,
+    board: JSON.parse(data.boardState) as unknown,
+  };
+}

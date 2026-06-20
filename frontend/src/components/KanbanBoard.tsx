@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -13,6 +13,7 @@ import {
 } from "@dnd-kit/core";
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
+import { CopilotDialog } from "@/components/CopilotDialog";
 import { createId, initialData, moveCard, type BoardData } from "@/lib/kanban";
 import { getBoard, saveBoard } from "@/lib/api";
 
@@ -134,6 +135,17 @@ export const KanbanBoard = ({ userId, onLogout }: KanbanBoardProps) => {
     });
   };
 
+  const flushSave = useCallback(async () => {
+    if (isLoading) return;
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+
+    await saveBoard(userId, board);
+  }, [board, userId, isLoading]);
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -223,6 +235,12 @@ export const KanbanBoard = ({ userId, onLogout }: KanbanBoardProps) => {
             ) : null}
           </DragOverlay>
         </DndContext>
+
+        <CopilotDialog
+          userId={userId}
+          onBeforeSend={flushSave}
+          onBoardUpdate={(nextBoard) => setBoard(nextBoard)}
+        />
       </main>
     </div>
   );
