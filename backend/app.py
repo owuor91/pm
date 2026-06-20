@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -87,11 +87,11 @@ def auth(request: AuthRequest):
     summary="Get board state",
     description="Retrieve the saved board state for the given user ID.",
 )
-def get_board(user_id: int):
+def get_board(user_id: int = Query(..., description="The user ID")):
     row = get_board_state_by_user_id(user_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Board not found")
-    return {"state": row["state"]}
+    return {"state": row}
 
 
 @app.post(
@@ -101,7 +101,7 @@ def get_board(user_id: int):
     summary="Save board state",
     description="Save the current Kanban board state for the given user ID.",
 )
-def save_board(request: BoardStateUpdateRequest, user_id: int):
+def save_board(request: BoardStateUpdateRequest, user_id: int = Query(..., description="The user ID")):
     try:
         update_board_state_by_user_id(user_id, request.state)
     except ValueError:
