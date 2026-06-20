@@ -8,12 +8,17 @@ app = FastAPI(title="Project Management MVP Backend")
 
 static_dir = Path(__file__).resolve().parent / "static"
 if static_dir.exists():
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    app.mount("/_next", StaticFiles(directory=static_dir / "_next"), name="next")
 
 
 @app.get("/")
 def root():
     return FileResponse(static_dir / "index.html")
+
+
+@app.get("/favicon.ico")
+def favicon():
+    return FileResponse(static_dir / "favicon.ico")
 
 
 @app.get("/health")
