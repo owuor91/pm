@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Literal
 
 
 class CardUpdate(BaseModel):
@@ -35,3 +35,21 @@ class AIRequest(BaseModel):
     """Request to the AI with board context and user prompt."""
     userId: int
     prompt: str
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class AIChatRequest(BaseModel):
+    userId: int
+    prompt: str
+    messages: Optional[List[ChatMessage]] = None
+
+
+class AIChatResponse(BaseModel):
+    message: str
+    boardState: str
+    applied: bool
+    confidence: Optional[float] = None
