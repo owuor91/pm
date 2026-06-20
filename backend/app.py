@@ -11,6 +11,8 @@ from backend.db import (
     get_user_by_credentials,
     update_board_state_by_user_id,
 )
+from backend.ai_service import AIService
+
 
 app = FastAPI(
     title="Project Management MVP Backend",
@@ -29,11 +31,18 @@ app = FastAPI(
             "description": "Board state retrieval and persistence endpoints.",
         },
         {
+            "name": "ai",
+            "description": "AI connectivity and interaction endpoints.",
+        },
+        {
             "name": "health",
             "description": "Service health check endpoints.",
         },
     ],
 )
+
+# Initialize AI service
+ai_service = AIService()
 
 static_dir = Path(__file__).resolve().parent / "static"
 next_dir = static_dir / "_next"
@@ -117,6 +126,21 @@ def save_board(request: BoardStateUpdateRequest, user_id: int = Query(..., descr
 )
 def health():
     return {"status": "ok"}
+
+
+@app.get(
+    "/api/ai/test",
+    tags=["ai"],
+    summary="Test AI connectivity",
+    description="Test connection to OpenRouter AI with a simple prompt.",
+)
+def test_ai():
+    if not ai_service.is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="AI service is not configured. OPENROUTER_API_KEY is missing.",
+        )
+    return ai_service.test_connectivity()
 
 
 @app.get("/api/hello")

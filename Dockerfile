@@ -14,7 +14,7 @@ FROM python:3.12-slim AS base
 
 WORKDIR /app
 RUN python -m pip install --upgrade pip
-RUN python -m pip install fastapi uvicorn
+RUN python -m pip install fastapi uvicorn httpx python-dotenv
 
 COPY backend/ ./backend
 COPY --from=frontend-build /app/frontend/static ./backend/static
