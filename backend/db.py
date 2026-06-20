@@ -56,6 +56,48 @@ def init_db(db_path: Optional[Path] = None) -> None:
         _seed_default_data(connection)
 
 
+def get_user_by_credentials(
+    username: str, password: str, db_path: Optional[Path] = None
+) -> Optional[sqlite3.Row]:
+    with get_connection(db_path) as connection:
+        return connection.execute(
+            "SELECT * FROM users WHERE username = ? AND password = ?",
+            (username, password),
+        ).fetchone()
+
+
+def get_board_state_by_user_id(
+    user_id: int, db_path: Optional[Path] = None,
+) -> Optional[str]:
+    with get_connection(db_path) as connection:
+        row = connection.execute(
+            "SELECT bs.state FROM board_state bs "
+            "JOIN boards b ON bs.board_id = b.id "
+            "WHERE b.user_id = ?",
+            (user_id,),
+        ).fetchone()
+        return row["state"] if row else None
+
+
+def update_board_state_by_user_id(
+    user_id: int, state: object, db_path: Optional[Path] = None,
+) -> None:
+    with get_connection(db_path) as connection:
+        row = connection.execute(
+            "SELECT b.id FROM boards b WHERE b.user_id = ?",
+            (user_id,),
+        ).fetchone()
+        if row is None:
+            raise ValueError("Board not found for user")
+
+        state_json = json.dumps(state)
+        connection.execute(
+            "UPDATE board_state SET state = ?, updated_at = CURRENT_TIMESTAMP WHERE board_id = ?",
+            (state_json, row["id"]),
+        )
+        connection.commit()
+
+
 def _seed_default_data(connection: sqlite3.Connection) -> None:
     cursor = connection.execute(
         "SELECT id FROM users WHERE username = ?",

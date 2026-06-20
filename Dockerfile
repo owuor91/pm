@@ -18,7 +18,7 @@ RUN python -m pip install fastapi uvicorn
 
 COPY backend/ ./backend
 COPY --from=frontend-build /app/frontend/static ./backend/static
-WORKDIR /app/backend
+WORKDIR /app
 
 EXPOSE 8000
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
