@@ -4,11 +4,15 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from .db import init_db
+
 app = FastAPI(title="Project Management MVP Backend")
 
 static_dir = Path(__file__).resolve().parent / "static"
 if static_dir.exists():
     app.mount("/_next", StaticFiles(directory=static_dir / "_next"), name="next")
+
+init_db()
 
 
 @app.get("/")
