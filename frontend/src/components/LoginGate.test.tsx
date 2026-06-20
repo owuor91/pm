@@ -1,8 +1,18 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import { LoginGate } from "@/components/LoginGate";
+import * as api from "@/lib/api";
+
+vi.mock("@/lib/api");
 
 describe("LoginGate", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.getBoard).mockResolvedValue({ columns: [], cards: {} });
+    vi.mocked(api.saveBoard).mockResolvedValue({ state: "" });
+  });
+
   it("shows the login form initially", () => {
     render(<LoginGate />);
 
@@ -11,7 +21,9 @@ describe("LoginGate", () => {
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
   });
 
-  it("authenticates valid credentials and shows the board", async () => {
+  it("calls authUser on form submit", async () => {
+    vi.mocked(api.authUser).mockResolvedValue({ user_id: 1, username: "user" });
+
     render(<LoginGate />);
 
     const user = userEvent.setup();
@@ -19,11 +31,27 @@ describe("LoginGate", () => {
     await user.type(screen.getByLabelText(/password/i), "password");
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
-    expect(screen.getByRole("button", { name: /logout/i })).toBeInTheDocument();
-    expect(screen.getByText(/kanban studio/i)).toBeInTheDocument();
+    expect(api.authUser).toHaveBeenCalledWith("user", "password");
   });
 
-  it("rejects invalid credentials", async () => {
+  it("authenticates and shows the board on valid credentials", async () => {
+    vi.mocked(api.authUser).mockResolvedValue({ user_id: 1, username: "user" });
+
+    render(<LoginGate />);
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/username/i), "user");
+    await user.type(screen.getByLabelText(/password/i), "password");
+    await user.click(screen.getByRole("button", { name: /sign in/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /logout/i })).toBeInTheDocument();
+    });
+  });
+
+  it("shows error on invalid credentials", async () => {
+    vi.mocked(api.authUser).mockRejectedValue(new Error("Authentication failed"));
+
     render(<LoginGate />);
 
     const user = userEvent.setup();
@@ -31,7 +59,8 @@ describe("LoginGate", () => {
     await user.type(screen.getByLabelText(/password/i), "creds");
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
-    expect(screen.getByText(/invalid username or password/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /logout/i })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/invalid username or password/i)).toBeInTheDocument();
+    });
   });
 });

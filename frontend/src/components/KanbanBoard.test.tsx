@@ -1,17 +1,37 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import { KanbanBoard } from "@/components/KanbanBoard";
+import * as api from "@/lib/api";
+import { initialData } from "@/lib/kanban";
+
+vi.mock("@/lib/api");
 
 const getFirstColumn = () => screen.getAllByTestId(/column-/i)[0];
 
 describe("KanbanBoard", () => {
-  it("renders five columns", () => {
-    render(<KanbanBoard />);
+  beforeEach(() => {
+    vi.mocked(api.getBoard).mockResolvedValue(initialData);
+    vi.mocked(api.saveBoard).mockResolvedValue({ state: "" });
+  });
+
+  it("renders five columns", async () => {
+    render(<KanbanBoard userId={1} />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
     expect(screen.getAllByTestId(/column-/i)).toHaveLength(5);
   });
 
   it("renames a column", async () => {
-    render(<KanbanBoard />);
+    render(<KanbanBoard userId={1} />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
     const column = getFirstColumn();
     const input = within(column).getByLabelText("Column title");
     await userEvent.clear(input);
@@ -20,7 +40,12 @@ describe("KanbanBoard", () => {
   });
 
   it("adds and removes a card", async () => {
-    render(<KanbanBoard />);
+    render(<KanbanBoard userId={1} />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
     const column = getFirstColumn();
     const addButton = within(column).getByRole("button", {
       name: /add a card/i,

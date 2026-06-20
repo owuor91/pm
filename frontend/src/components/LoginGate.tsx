@@ -2,35 +2,42 @@
 
 import { useState, type FormEvent } from "react";
 import { KanbanBoard } from "@/components/KanbanBoard";
-
-const validUsername = "user";
-const validPassword = "password";
+import { authUser } from "@/lib/api";
 
 export const LoginGate = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (username === validUsername && password === validPassword) {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const result = await authUser(username, password);
+      setUserId(result.user_id);
       setIsAuthenticated(true);
-      setError("");
-      return;
+    } catch {
+      setError("Invalid username or password.");
+    } finally {
+      setIsLoading(false);
     }
-    setError("Invalid username or password.");
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setUserId(null);
     setUsername("");
     setPassword("");
     setError("");
   };
 
-  if (isAuthenticated) {
-    return <KanbanBoard onLogout={handleLogout} />;
+  if (isAuthenticated && userId !== null) {
+    return <KanbanBoard userId={userId} onLogout={handleLogout} />;
   }
 
   return (
@@ -38,7 +45,7 @@ export const LoginGate = () => {
       <div className="w-full max-w-md rounded-[32px] border border-[var(--stroke)] bg-white p-10 shadow-[var(--shadow)]">
         <h1 className="text-3xl font-semibold text-[var(--navy-dark)]">Sign in</h1>
         <p className="mt-3 text-sm leading-6 text-[var(--gray-text)]">
-          Use the hardcoded credentials to access the Kanban board.
+          Enter your credentials to access the Kanban board.
         </p>
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <label className="block text-sm font-semibold text-[var(--navy-dark)]">
@@ -47,7 +54,8 @@ export const LoginGate = () => {
               type="text"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              className="mt-2 w-full rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--primary-blue)]"
+              disabled={isLoading}
+              className="mt-2 w-full rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--primary-blue)] disabled:opacity-50"
               autoComplete="username"
             />
           </label>
@@ -57,7 +65,8 @@ export const LoginGate = () => {
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="mt-2 w-full rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--primary-blue)]"
+              disabled={isLoading}
+              className="mt-2 w-full rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--primary-blue)] disabled:opacity-50"
               autoComplete="current-password"
             />
           </label>
@@ -68,9 +77,10 @@ export const LoginGate = () => {
           ) : null}
           <button
             type="submit"
-            className="w-full rounded-full bg-[var(--secondary-purple)] px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white transition hover:brightness-110"
+            disabled={isLoading}
+            className="w-full rounded-full bg-[var(--secondary-purple)] px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white transition hover:brightness-110 disabled:opacity-50"
           >
-            Sign in
+            {isLoading ? "Signing in..." : "Sign in"}
           </button>
         </form>
       </div>

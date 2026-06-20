@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -14,14 +14,55 @@ import {
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
 import { createId, initialData, moveCard, type BoardData } from "@/lib/kanban";
+import { getBoard, saveBoard } from "@/lib/api";
 
 type KanbanBoardProps = {
+  userId: number;
   onLogout?: () => void;
 };
 
-export const KanbanBoard = ({ onLogout }: KanbanBoardProps) => {
-  const [board, setBoard] = useState<BoardData>(() => initialData);
+export const KanbanBoard = ({ userId, onLogout }: KanbanBoardProps) => {
+  const [board, setBoard] = useState<BoardData>(initialData);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const loadBoard = async () => {
+      try {
+        const boardData = await getBoard(userId);
+        setBoard(boardData);
+      } catch (error) {
+        console.error("Failed to load board:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadBoard();
+  }, [userId]);
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await saveBoard(userId, board);
+      } catch (error) {
+        console.error("Failed to save board:", error);
+      }
+    }, 500);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [board, userId, isLoading]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -92,6 +133,14 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps) => {
       };
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-lg font-semibold text-[var(--navy-dark)]">Loading board...</p>
+      </div>
+    );
+  }
 
   const activeCard = activeCardId ? cardsById[activeCardId] : null;
 
