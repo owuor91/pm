@@ -36,7 +36,7 @@ class AIService:
                 f"{self.base_url}/chat/completions",
                 json=payload,
                 headers=headers,
-                timeout=30.0,
+                timeout=60.0,
             )
             response.raise_for_status()
             data = response.json()

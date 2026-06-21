@@ -22,7 +22,11 @@ export async function getBoard(userId: number) {
   }
 
   const data = await response.json();
-  return JSON.parse(data.state);
+  try {
+    return JSON.parse(data.state);
+  } catch {
+    throw new Error("Failed to parse board state");
+  }
 }
 
 export async function saveBoard(userId: number, state: object) {
@@ -56,10 +60,16 @@ export async function aiChat(userId: number, prompt: string, messages?: ChatMess
   }
 
   const data = await response.json();
+  let board: unknown;
+  try {
+    board = JSON.parse(data.boardState);
+  } catch {
+    board = null;
+  }
   return {
     message: data.message as string,
     applied: Boolean(data.applied),
     confidence: typeof data.confidence === "number" ? (data.confidence as number) : undefined,
-    board: JSON.parse(data.boardState) as unknown,
+    board,
   };
 }

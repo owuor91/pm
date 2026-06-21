@@ -16,11 +16,12 @@ def test_init_db_creates_schema_and_default_user(tmp_path: Path):
     db_path = tmp_path / "test.db"
     init_db(db_path)
 
+    from backend.db import _hash_password
     with get_connection(db_path) as conn:
         user = conn.execute("SELECT username, password FROM users WHERE username = ?", ("user",)).fetchone()
         assert user is not None
         assert user["username"] == "user"
-        assert user["password"] == "password"
+        assert user["password"] == _hash_password("password")
 
         board = conn.execute("SELECT id FROM boards WHERE user_id = (SELECT id FROM users WHERE username = ?)", ("user",)).fetchone()
         assert board is not None

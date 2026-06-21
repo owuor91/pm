@@ -1,7 +1,8 @@
 from pathlib import Path
 import json
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -14,7 +15,7 @@ from backend.db import (
 )
 from backend.ai_service import AIService
 from backend.board_updates import apply_board_update
-from backend.schemas import AIChatRequest, AIChatResponse, AIResponse
+from backend.schemas import AIChatRequest, AIChatResponse, AIResponse, NewCard
 
 
 app = FastAPI(
@@ -44,13 +45,20 @@ app = FastAPI(
     ],
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Initialize AI service
 ai_service = AIService()
 
 static_dir = Path(__file__).resolve().parent / "static"
-next_dir = static_dir / "_next"
-if next_dir.exists():
-    app.mount("/_next", StaticFiles(directory=next_dir), name="next")
+if (static_dir / "_next").exists():
+    app.mount("/_next", StaticFiles(directory=static_dir / "_next"), name="next")
 
 init_db()
 
@@ -185,9 +193,7 @@ def ai_chat(request: AIChatRequest):
         raise HTTPException(status_code=502, detail="AI returned non-JSON response")
 
     try:
-        ai_response = AIResponse.model_validate(raw_json)  # pydantic v2
-    except AttributeError:
-        ai_response = AIResponse.parse_obj(raw_json)  # pydantic v1
+        ai_response = AIResponse.model_validate(raw_json)
     except Exception:
         raise HTTPException(status_code=502, detail="AI returned invalid response shape")
 

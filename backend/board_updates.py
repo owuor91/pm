@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import copy
 from typing import Any
 from uuid import uuid4
 
-from backend.schemas import BoardUpdate
+from backend.schemas import BoardUpdate, NewCard
 
 
 def apply_board_update(board_state: dict[str, Any], update: BoardUpdate) -> dict[str, Any]:
-    columns = board_state.get("columns")
-    cards = board_state.get("cards")
+    result = copy.deepcopy(board_state)
+    columns = result.get("columns")
+    cards = result.get("cards")
 
     if not isinstance(columns, list):
         columns = []
@@ -57,31 +59,28 @@ def apply_board_update(board_state: dict[str, Any], update: BoardUpdate) -> dict
 
     if update.newCards:
         for new_card in update.newCards:
-            if not isinstance(new_card, dict):
-                continue
-
-            title = str(new_card.get("title", "")).strip()
+            title = new_card.title.strip()
             if not title:
                 continue
 
-            column_id = new_card.get("columnId")
-            if not isinstance(column_id, str) or column_id not in column_by_id:
+            column_id = new_card.columnId
+            if column_id not in column_by_id:
                 continue
 
-            card_id = new_card.get("id")
-            if not isinstance(card_id, str) or not card_id or card_id in cards:
+            card_id = new_card.id
+            if not card_id or card_id in cards:
                 card_id = f"ai-{uuid4().hex[:12]}"
                 while card_id in cards:
                     card_id = f"ai-{uuid4().hex[:12]}"
 
-            details = str(new_card.get("details", "")).strip() or "No details yet."
+            details = (new_card.details or "").strip() or "No details yet."
             cards[card_id] = {"id": card_id, "title": title, "details": details}
 
             target = column_by_id[column_id]
             if card_id not in target["cardIds"]:
                 target["cardIds"].append(card_id)
 
-    board_state["columns"] = columns
-    board_state["cards"] = cards
-    return board_state
+    result["columns"] = columns
+    result["cards"] = cards
+    return result
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sqlite3
@@ -9,7 +10,7 @@ from typing import Optional
 DEFAULT_DB_PATH = Path(__file__).resolve().parent / "pm.db"
 DB_PATH = Path(os.environ.get("PM_DB_PATH", str(DEFAULT_DB_PATH))).expanduser()
 DEFAULT_USERNAME = "user"
-DEFAULT_PASSWORD = "password"
+DEFAULT_PASSWORD_HASH = hashlib.sha256("password".encode()).hexdigest()
 DEFAULT_BOARD_NAME = "Default Board"
 DEFAULT_BOARD_STATE_OBJECT = {
     "columns": [
@@ -113,13 +114,17 @@ def init_db(db_path: Optional[Path] = None) -> None:
         _seed_default_data(connection)
 
 
+def _hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
 def get_user_by_credentials(
     username: str, password: str, db_path: Optional[Path] = None
 ) -> Optional[sqlite3.Row]:
     with get_connection(db_path) as connection:
         return connection.execute(
             "SELECT * FROM users WHERE username = ? AND password = ?",
-            (username, password),
+            (username, _hash_password(password)),
         ).fetchone()
 
 
@@ -226,7 +231,7 @@ def _seed_default_data(connection: sqlite3.Connection) -> None:
     else:
         user_id = connection.execute(
             "INSERT INTO users (username, password) VALUES (?, ?)",
-            (DEFAULT_USERNAME, DEFAULT_PASSWORD),
+            (DEFAULT_USERNAME, DEFAULT_PASSWORD_HASH),
         ).lastrowid
 
     cursor = connection.execute(
