@@ -242,6 +242,38 @@ describe("KanbanBoard", () => {
     expect(within(stats).getByText("2/8")).toBeInTheDocument();
   });
 
+  it("duplicates a card into the same column right after the original", async () => {
+    render(<KanbanBoard userId={1} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    const column = getFirstColumn();
+    const dupButton = within(column).getByRole("button", { name: /duplicate align roadmap themes/i });
+    await userEvent.click(dupButton);
+
+    const copies = within(column).getAllByText(/align roadmap themes/i);
+    expect(copies).toHaveLength(2);
+    expect(within(column).getByText("Align roadmap themes (copy)")).toBeInTheDocument();
+  });
+
+  it("shows 'Overdue' for past due dates on a card", async () => {
+    vi.mocked(api.getBoardState).mockResolvedValue({
+      ...initialData,
+      cards: {
+        ...initialData.cards,
+        "card-1": { ...initialData.cards["card-1"], dueDate: "2020-01-01" },
+      },
+    });
+
+    render(<KanbanBoard userId={1} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/overdue 2020-01-01/i)).toBeInTheDocument();
+  });
+
   it("shows high-priority indicator when high/critical cards exist", async () => {
     vi.mocked(api.getBoardState).mockResolvedValue({
       ...initialData,

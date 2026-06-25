@@ -248,6 +248,33 @@ export const KanbanBoard = ({ userId, username, onLogout }: KanbanBoardProps) =>
     });
   };
 
+  const handleDuplicateCard = (columnId: string, cardId: string) => {
+    setBoard((prev) => {
+      const original = prev.cards[cardId];
+      if (!original) return prev;
+      const newId = createId("card");
+      return {
+        ...prev,
+        cards: {
+          ...prev.cards,
+          [newId]: { ...original, id: newId, title: `${original.title} (copy)` },
+        },
+        columns: prev.columns.map((c) =>
+          c.id === columnId
+            ? {
+                ...c,
+                cardIds: [
+                  ...c.cardIds.slice(0, c.cardIds.indexOf(cardId) + 1),
+                  newId,
+                  ...c.cardIds.slice(c.cardIds.indexOf(cardId) + 1),
+                ],
+              }
+            : c
+        ),
+      };
+    });
+  };
+
   const handleSetWipLimit = (columnId: string, limit: number | undefined) => {
     setBoard((prev) => ({
       ...prev,
@@ -526,6 +553,7 @@ export const KanbanBoard = ({ userId, username, onLogout }: KanbanBoardProps) =>
                   onAddCard={handleAddCard}
                   onDeleteCard={handleDeleteCard}
                   onEditCard={handleEditCard}
+                  onDuplicateCard={handleDuplicateCard}
                   onDeleteColumn={handleDeleteColumn}
                   className="min-w-[260px] flex-1 basis-[260px] sm:min-w-[280px] sm:basis-[280px]"
                 />

@@ -11,6 +11,32 @@ const PRIORITY_STYLES: Record<Priority, { badge: string; label: string }> = {
   critical: { badge: "bg-red-100 text-red-700", label: "Critical" },
 };
 
+type DueDateStatus = "overdue" | "today" | "soon" | "future";
+
+function getDueDateStatus(dueDate: string): DueDateStatus {
+  const today = new Date(new Date().toDateString());
+  const due = new Date(dueDate);
+  const diffDays = Math.round((due.getTime() - today.getTime()) / 86400000);
+  if (diffDays < 0) return "overdue";
+  if (diffDays === 0) return "today";
+  if (diffDays <= 3) return "soon";
+  return "future";
+}
+
+const DUE_DATE_STYLES: Record<DueDateStatus, string> = {
+  overdue: "text-red-600 font-bold",
+  today: "text-amber-600 font-semibold",
+  soon: "text-orange-500 font-semibold",
+  future: "text-[var(--gray-text)]",
+};
+
+const DUE_DATE_LABELS: Record<DueDateStatus, string> = {
+  overdue: "Overdue",
+  today: "Due today",
+  soon: "Due soon",
+  future: "Due",
+};
+
 type CardEdits = {
   title: string;
   details: string;
@@ -23,9 +49,10 @@ type KanbanCardProps = {
   card: Card;
   onDelete: (cardId: string) => void;
   onEdit: (cardId: string, edits: CardEdits) => void;
+  onDuplicate: (cardId: string) => void;
 };
 
-export const KanbanCard = ({ card, onDelete, onEdit }: KanbanCardProps) => {
+export const KanbanCard = ({ card, onDelete, onEdit, onDuplicate }: KanbanCardProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: card.id });
   const [isEditing, setIsEditing] = useState(false);
@@ -170,6 +197,17 @@ export const KanbanCard = ({ card, onDelete, onEdit }: KanbanCardProps) => {
         </button>
         <button
           type="button"
+          onClick={() => onDuplicate(card.id)}
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--gray-text)] transition hover:bg-[var(--surface)] hover:text-[var(--primary-blue)]"
+          aria-label={`Duplicate ${card.title}`}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="1.6" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </button>
+        <button
+          type="button"
           onClick={() => onDelete(card.id)}
           className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--gray-text)] transition hover:bg-[var(--surface)] hover:text-red-500"
           aria-label={`Delete ${card.title}`}
@@ -215,8 +253,14 @@ export const KanbanCard = ({ card, onDelete, onEdit }: KanbanCardProps) => {
         </div>
       ) : null}
       {card.dueDate ? (
-        <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)]">
-          Due {card.dueDate}
+        <p
+          className={clsx(
+            "mt-2 text-xs uppercase tracking-wide",
+            DUE_DATE_STYLES[getDueDateStatus(card.dueDate)]
+          )}
+          data-testid={`due-date-${card.id}`}
+        >
+          {DUE_DATE_LABELS[getDueDateStatus(card.dueDate)]} {card.dueDate}
         </p>
       ) : null}
     </article>

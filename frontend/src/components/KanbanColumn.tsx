@@ -17,6 +17,7 @@ type KanbanColumnProps = {
     cardId: string,
     edits: { title: string; details: string; dueDate?: string; labels?: string[]; priority?: Priority }
   ) => void;
+  onDuplicateCard: (columnId: string, cardId: string) => void;
   onDeleteColumn?: (columnId: string) => void;
   className?: string;
 };
@@ -29,6 +30,7 @@ export const KanbanColumn = ({
   onAddCard,
   onDeleteCard,
   onEditCard,
+  onDuplicateCard,
   onDeleteColumn,
   className,
 }: KanbanColumnProps) => {
@@ -166,6 +168,7 @@ export const KanbanColumn = ({
               card={card}
               onDelete={(cardId) => onDeleteCard(column.id, cardId)}
               onEdit={onEditCard}
+              onDuplicate={(cardId) => onDuplicateCard(column.id, cardId)}
             />
           ))}
         </SortableContext>
