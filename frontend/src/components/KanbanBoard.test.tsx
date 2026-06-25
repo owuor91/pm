@@ -291,6 +291,19 @@ describe("KanbanBoard", () => {
     expect(screen.getByText(/1 high priority/i)).toBeInTheDocument();
   });
 
+  it("sort control renders and allows selecting a sort mode", async () => {
+    render(<KanbanBoard userId={1} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    const sortSelect = screen.getByLabelText(/sort cards/i);
+    expect(sortSelect).toBeInTheDocument();
+    await userEvent.selectOptions(sortSelect, "title");
+    expect((sortSelect as HTMLSelectElement).value).toBe("title");
+    expect(screen.getByText("Align roadmap themes")).toBeInTheDocument();
+  });
+
   it("filters cards by priority", async () => {
     vi.mocked(api.getBoardState).mockResolvedValue({
       ...initialData,

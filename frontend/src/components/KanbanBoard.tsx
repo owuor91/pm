@@ -20,7 +20,7 @@ import { BoardPicker } from "@/components/BoardPicker";
 import { BoardMembersDialog } from "@/components/BoardMembersDialog";
 import { ActivityDialog } from "@/components/ActivityDialog";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
-import { createId, moveCard, type BoardData, type Column, type Priority } from "@/lib/kanban";
+import { createId, exportBoardToCsv, moveCard, type BoardData, type Column, type Priority } from "@/lib/kanban";
 import {
   createBoard,
   deleteBoard,
@@ -58,6 +58,8 @@ export const KanbanBoard = ({ userId, username, onLogout }: KanbanBoardProps) =>
   const [search, setSearch] = useState("");
   const [labelFilter, setLabelFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<Priority | "">("");
+  type SortMode = "manual" | "priority" | "dueDate" | "title";
+  const [sortMode, setSortMode] = useState<SortMode>("manual");
   const [showMembers, setShowMembers] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -143,12 +145,12 @@ export const KanbanBoard = ({ userId, username, onLogout }: KanbanBoardProps) =>
     return Array.from(labels).sort();
   }, [board.cards]);
 
+  const PRIORITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+
   const visibleColumns: Column[] = useMemo(() => {
-    if (!search.trim() && !labelFilter && !priorityFilter) return board.columns;
     const query = search.trim().toLowerCase();
-    return board.columns.map((column) => ({
-      ...column,
-      cardIds: column.cardIds.filter((cardId) => {
+    const filtered = board.columns.map((column) => {
+      let ids = column.cardIds.filter((cardId) => {
         const card = board.cards[cardId];
         if (!card) return false;
         const matchesQuery =
@@ -158,9 +160,35 @@ export const KanbanBoard = ({ userId, username, onLogout }: KanbanBoardProps) =>
         const matchesLabel = !labelFilter || card.labels?.includes(labelFilter);
         const matchesPriority = !priorityFilter || card.priority === priorityFilter;
         return matchesQuery && matchesLabel && matchesPriority;
-      }),
-    }));
-  }, [board.columns, board.cards, search, labelFilter, priorityFilter]);
+      });
+
+      if (sortMode !== "manual") {
+        ids = [...ids].sort((a, b) => {
+          const cardA = board.cards[a];
+          const cardB = board.cards[b];
+          if (!cardA || !cardB) return 0;
+          if (sortMode === "priority") {
+            const pa = PRIORITY_ORDER[cardA.priority ?? ""] ?? 4;
+            const pb = PRIORITY_ORDER[cardB.priority ?? ""] ?? 4;
+            return pa - pb;
+          }
+          if (sortMode === "dueDate") {
+            if (!cardA.dueDate && !cardB.dueDate) return 0;
+            if (!cardA.dueDate) return 1;
+            if (!cardB.dueDate) return -1;
+            return cardA.dueDate.localeCompare(cardB.dueDate);
+          }
+          if (sortMode === "title") {
+            return cardA.title.localeCompare(cardB.title);
+          }
+          return 0;
+        });
+      }
+
+      return { ...column, cardIds: ids };
+    });
+    return filtered;
+  }, [board.columns, board.cards, search, labelFilter, priorityFilter, sortMode]);
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveCardId(event.active.id as string);
@@ -524,6 +552,17 @@ export const KanbanBoard = ({ userId, username, onLogout }: KanbanBoardProps) =>
               <option value="high">High</option>
               <option value="critical">Critical</option>
             </select>
+            <select
+              value={sortMode}
+              onChange={(event) => setSortMode(event.target.value as typeof sortMode)}
+              aria-label="Sort cards"
+              className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-2 text-sm outline-none focus:border-[var(--primary-blue)]"
+            >
+              <option value="manual">Manual order</option>
+              <option value="priority">By priority</option>
+              <option value="dueDate">By due date</option>
+              <option value="title">By title</option>
+            </select>
             <button
               type="button"
               onClick={handleAddColumn}
@@ -532,6 +571,16 @@ export const KanbanBoard = ({ userId, username, onLogout }: KanbanBoardProps) =>
             >
               + Add column
             </button>
+            {selectedBoard ? (
+              <button
+                type="button"
+                onClick={() => exportBoardToCsv(board, selectedBoard.name)}
+                className="rounded-full border border-[var(--stroke)] bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--navy-dark)] transition hover:bg-[var(--surface)]"
+                aria-label="Export board to CSV"
+              >
+                Export CSV
+              </button>
+            ) : null}
           </div>
         ) : null}
 

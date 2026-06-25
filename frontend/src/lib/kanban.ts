@@ -175,3 +175,42 @@ export const createId = (prefix: string) => {
   const timePart = Date.now().toString(36);
   return `${prefix}-${randomPart}${timePart}`;
 };
+
+function csvEscape(value: string): string {
+  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+export function exportBoardToCsv(board: BoardData, boardName: string): void {
+  const rows: string[] = [
+    ["Column", "Title", "Details", "Priority", "Labels", "Due Date"].join(","),
+  ];
+
+  for (const column of board.columns) {
+    for (const cardId of column.cardIds) {
+      const card = board.cards[cardId];
+      if (!card) continue;
+      rows.push(
+        [
+          csvEscape(column.title),
+          csvEscape(card.title),
+          csvEscape(card.details),
+          card.priority ?? "",
+          csvEscape((card.labels ?? []).join("; ")),
+          card.dueDate ?? "",
+        ].join(",")
+      );
+    }
+  }
+
+  const csv = rows.join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${boardName.replace(/[^a-z0-9]/gi, "_")}_export.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
