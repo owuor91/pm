@@ -121,6 +121,20 @@ export const KanbanBoard = ({ userId, username, onLogout }: KanbanBoardProps) =>
 
   const cardsById = useMemo(() => board.cards, [board.cards]);
 
+  const boardStats = useMemo(() => {
+    const total = Object.keys(board.cards).length;
+    const lastColumn = board.columns[board.columns.length - 1];
+    const done = lastColumn ? lastColumn.cardIds.filter((id) => board.cards[id]).length : 0;
+    const highPriority = Object.values(board.cards).filter(
+      (c) => c.priority === "high" || c.priority === "critical"
+    ).length;
+    const overdue = Object.values(board.cards).filter((c) => {
+      if (!c.dueDate) return false;
+      return new Date(c.dueDate) < new Date(new Date().toDateString());
+    }).length;
+    return { total, done, highPriority, overdue };
+  }, [board.cards, board.columns]);
+
   const allLabels = useMemo(() => {
     const labels = new Set<string>();
     Object.values(board.cards).forEach((card) => {
@@ -399,6 +413,55 @@ export const KanbanBoard = ({ userId, username, onLogout }: KanbanBoardProps) =>
             ) : null}
           </div>
         </header>
+
+        {selectedBoard && boardStats.total > 0 ? (
+          <div
+            className="flex flex-wrap items-center gap-6 rounded-2xl border border-[var(--stroke)] bg-white/80 px-5 py-3 shadow-[var(--shadow)] sm:rounded-3xl"
+            data-testid="board-stats"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
+                Total
+              </span>
+              <span className="font-display text-lg font-semibold text-[var(--navy-dark)]">
+                {boardStats.total}
+              </span>
+            </div>
+            <div className="flex-1">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
+                  Progress
+                </span>
+                <span className="text-xs font-semibold text-[var(--gray-text)]">
+                  {boardStats.done}/{boardStats.total}
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--stroke)]">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                  style={{ width: `${(boardStats.done / boardStats.total) * 100}%` }}
+                  data-testid="progress-bar"
+                />
+              </div>
+            </div>
+            {boardStats.highPriority > 0 ? (
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-red-500" />
+                <span className="text-xs font-semibold text-red-600">
+                  {boardStats.highPriority} high priority
+                </span>
+              </div>
+            ) : null}
+            {boardStats.overdue > 0 ? (
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-amber-500" />
+                <span className="text-xs font-semibold text-amber-700">
+                  {boardStats.overdue} overdue
+                </span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {selectedBoard ? (
           <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--stroke)] bg-white/80 p-4 shadow-[var(--shadow)] sm:rounded-3xl">

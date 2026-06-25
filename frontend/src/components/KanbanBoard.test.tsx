@@ -230,6 +230,35 @@ describe("KanbanBoard", () => {
     expect(within(column).getByText(/\/ 3 max/i)).toBeInTheDocument();
   });
 
+  it("shows board stats bar with total and progress", async () => {
+    render(<KanbanBoard userId={1} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    const stats = screen.getByTestId("board-stats");
+    expect(stats).toBeInTheDocument();
+    expect(within(stats).getByText("8")).toBeInTheDocument();
+    expect(within(stats).getByText("2/8")).toBeInTheDocument();
+  });
+
+  it("shows high-priority indicator when high/critical cards exist", async () => {
+    vi.mocked(api.getBoardState).mockResolvedValue({
+      ...initialData,
+      cards: {
+        ...initialData.cards,
+        "card-1": { ...initialData.cards["card-1"], priority: "critical" },
+      },
+    });
+
+    render(<KanbanBoard userId={1} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/1 high priority/i)).toBeInTheDocument();
+  });
+
   it("filters cards by priority", async () => {
     vi.mocked(api.getBoardState).mockResolvedValue({
       ...initialData,
