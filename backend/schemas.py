@@ -33,6 +33,7 @@ class NewColumn(BaseModel):
 class ColumnUpdate(BaseModel):
     id: str
     title: Optional[str] = None
+    wipLimit: Optional[int] = None
 
 
 class BoardUpdate(BaseModel):

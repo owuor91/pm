@@ -234,6 +234,15 @@ export const KanbanBoard = ({ userId, username, onLogout }: KanbanBoardProps) =>
     });
   };
 
+  const handleSetWipLimit = (columnId: string, limit: number | undefined) => {
+    setBoard((prev) => ({
+      ...prev,
+      columns: prev.columns.map((c) =>
+        c.id === columnId ? { ...c, wipLimit: limit } : c
+      ),
+    }));
+  };
+
   const handleAddColumn = () => {
     const id = createId("col");
     setBoard((prev) => ({
@@ -450,6 +459,7 @@ export const KanbanBoard = ({ userId, username, onLogout }: KanbanBoardProps) =>
                   column={column}
                   cards={column.cardIds.map((cardId) => board.cards[cardId]).filter(Boolean)}
                   onRename={handleRenameColumn}
+                  onSetWipLimit={handleSetWipLimit}
                   onAddCard={handleAddCard}
                   onDeleteCard={handleDeleteCard}
                   onEditCard={handleEditCard}

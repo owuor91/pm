@@ -132,3 +132,18 @@ def test_add_column_with_explicit_id():
     assert "col-staging" in ids
     assert len(next_board["columns"]) == 2
 
+
+def test_wip_limit_set_and_clear():
+    board = {
+        "columns": [{"id": "col-todo", "title": "To Do", "cardIds": []}],
+        "cards": {},
+    }
+
+    update = BoardUpdate(updatedColumns=[ColumnUpdate(id="col-todo", wipLimit=3)])
+    next_board = apply_board_update(board, update)
+    assert next_board["columns"][0]["wipLimit"] == 3
+
+    update_clear = BoardUpdate(updatedColumns=[ColumnUpdate(id="col-todo", wipLimit=0)])
+    cleared = apply_board_update(next_board, update_clear)
+    assert "wipLimit" not in cleared["columns"][0]
+

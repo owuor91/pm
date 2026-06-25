@@ -213,6 +213,23 @@ describe("KanbanBoard", () => {
     expect(within(column).getByText("High")).toBeInTheDocument();
   });
 
+  it("sets a WIP limit on a column and shows card count / limit", async () => {
+    render(<KanbanBoard userId={1} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    const column = getFirstColumn();
+    await userEvent.click(within(column).getByTestId(/^wip-btn-/));
+
+    const wipInput = within(column).getByRole("spinbutton");
+    await userEvent.clear(wipInput);
+    await userEvent.type(wipInput, "3");
+    await userEvent.click(within(column).getByRole("button", { name: /^set$/i }));
+
+    expect(within(column).getByText(/\/ 3 max/i)).toBeInTheDocument();
+  });
+
   it("filters cards by priority", async () => {
     vi.mocked(api.getBoardState).mockResolvedValue({
       ...initialData,

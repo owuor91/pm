@@ -56,6 +56,11 @@ def apply_board_update(board_state: dict[str, Any], update: BoardUpdate) -> dict
                 continue
             if column_update.title is not None:
                 column["title"] = column_update.title
+            if column_update.wipLimit is not None:
+                if column_update.wipLimit > 0:
+                    column["wipLimit"] = column_update.wipLimit
+                else:
+                    column.pop("wipLimit", None)
 
     if update.deletedCardIds:
         deleted = set(update.deletedCardIds)
