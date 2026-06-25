@@ -68,6 +68,46 @@ def test_ai_service_test_connectivity_success(mock_post):
     assert "model" in result
 
 
+def test_ai_service_board_context_prompt_supports_due_dates_and_labels():
+    service = AIService(api_key="test-key")
+    captured = {}
+
+    def fake_call_ai_messages(messages, json_mode=False):
+        captured["messages"] = messages
+        return "{}"
+
+    service.call_ai_messages = fake_call_ai_messages
+    service.call_ai_with_board_context(
+        prompt="add a card",
+        board_state={"columns": [], "cards": {}},
+    )
+
+    system_prompt = captured["messages"][0]["content"]
+    assert "dueDate" in system_prompt
+    assert "labels" in system_prompt
+
+
+def test_ai_service_board_context_prompt_includes_priority_and_wip():
+    service = AIService(api_key="test-key")
+    captured = {}
+
+    def fake_call_ai_messages(messages, json_mode=False):
+        captured["messages"] = messages
+        return "{}"
+
+    service.call_ai_messages = fake_call_ai_messages
+    service.call_ai_with_board_context(
+        prompt="set a WIP limit",
+        board_state={"columns": [], "cards": {}},
+    )
+
+    system_prompt = captured["messages"][0]["content"]
+    assert "priority" in system_prompt
+    assert "wipLimit" in system_prompt
+    assert "newColumns" in system_prompt
+    assert "deletedColumnIds" in system_prompt
+
+
 @patch("backend.ai_service.httpx.post")
 def test_ai_service_test_connectivity_error(mock_post):
     """Test AI connectivity test with error."""

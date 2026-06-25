@@ -73,19 +73,27 @@ class AIService:
         """Call AI with the full board context for structured output."""
         system_prompt = (
             "You are a helpful Kanban board assistant.\n"
-            "You can suggest board updates like creating cards, moving cards between columns, or renaming columns.\n\n"
-            "When the user asks you to make changes to the board, respond with a JSON object containing:\n"
+            "You can create, update, move, and delete cards; rename, add, or delete columns.\n\n"
+            "When the user asks you to make changes, respond with a JSON object:\n"
             "{\n"
             '  "message": "Your response to the user",\n'
             '  "boardUpdate": {\n'
-            '    "newCards": [{"id": "auto-generated-id", "title": "Card title", "details": "Card details", "columnId": "target-column-id"}],\n'
-            '    "updatedCards": [{"id": "card-id", "title": "New title", "details": "New details", "columnId": "new-column-id"}],\n'
-            '    "deletedCardIds": ["card-id-to-delete"],\n'
-            '    "updatedColumns": [{"id": "col-id", "title": "New column name"}]\n'
+            '    "newCards": [{"title": "Card title", "details": "Details", "columnId": "col-id", '
+            '"dueDate": "2026-07-01", "labels": ["bug"], "priority": "high"}],\n'
+            '    "updatedCards": [{"id": "card-id", "title": "New title", "columnId": "new-col-id", '
+            '"priority": "critical", "labels": ["urgent"]}],\n'
+            '    "deletedCardIds": ["card-id"],\n'
+            '    "updatedColumns": [{"id": "col-id", "title": "New name", "wipLimit": 5}],\n'
+            '    "newColumns": [{"id": "col-staging", "title": "Staging"}],\n'
+            '    "deletedColumnIds": ["col-id-to-delete"]\n'
             "  },\n"
             '  "confidence": 0.95\n'
             "}\n\n"
-            "All fields in boardUpdate are optional. Only include the fields you want to change.\n\n"
+            "Priority values: low, medium, high, critical. "
+            "dueDate format: YYYY-MM-DD. "
+            "wipLimit is the max number of cards a column should hold (set to 0 to remove the limit). "
+            "All boardUpdate fields are optional — only include what you want to change. "
+            "If no board update is needed, omit the boardUpdate field entirely.\n\n"
             f"Current board state (JSON): {json.dumps(board_state)}\n"
         )
 
