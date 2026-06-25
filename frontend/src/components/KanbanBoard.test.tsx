@@ -291,6 +291,32 @@ describe("KanbanBoard", () => {
     expect(screen.getByText(/1 high priority/i)).toBeInTheDocument();
   });
 
+  it("pressing / focuses the search box", async () => {
+    render(<KanbanBoard userId={1} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByLabelText(/search cards/i);
+    expect(document.activeElement).not.toBe(searchInput);
+
+    await userEvent.keyboard("/");
+    expect(document.activeElement).toBe(searchInput);
+  });
+
+  it("pressing Escape clears the search", async () => {
+    render(<KanbanBoard userId={1} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByLabelText(/search cards/i);
+    await userEvent.type(searchInput, "roadmap");
+    expect(searchInput).toHaveValue("roadmap");
+    await userEvent.keyboard("{Escape}");
+    expect(searchInput).toHaveValue("");
+  });
+
   it("sort control renders and allows selecting a sort mode", async () => {
     render(<KanbanBoard userId={1} username="user" />);
     await waitFor(() => {

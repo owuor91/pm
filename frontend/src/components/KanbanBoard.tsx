@@ -66,6 +66,20 @@ export const KanbanBoard = ({ userId, username, onLogout }: KanbanBoardProps) =>
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isLoading = !boardsLoaded || (selectedBoardId !== null && loadedBoardId !== selectedBoardId);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -521,9 +535,11 @@ export const KanbanBoard = ({ userId, username, onLogout }: KanbanBoardProps) =>
         {selectedBoard ? (
           <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--stroke)] bg-white/80 p-4 shadow-[var(--shadow)] sm:rounded-3xl">
             <input
+              ref={searchRef}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search cards"
+              onKeyDown={(e) => e.key === "Escape" && setSearch("")}
+              placeholder="Search cards (press / to focus)"
               aria-label="Search cards"
               className="min-w-[180px] flex-1 rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-4 py-2 text-sm outline-none focus:border-[var(--primary-blue)]"
             />
