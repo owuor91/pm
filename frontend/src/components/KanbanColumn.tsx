@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import type { Card, Column } from "@/lib/kanban";
+import type { Card, Column, Priority } from "@/lib/kanban";
 import { KanbanCard } from "@/components/KanbanCard";
 import { NewCardForm } from "@/components/NewCardForm";
 
@@ -9,8 +9,13 @@ type KanbanColumnProps = {
   column: Column;
   cards: Card[];
   onRename: (columnId: string, title: string) => void;
-  onAddCard: (columnId: string, title: string, details: string) => void;
+  onAddCard: (columnId: string, title: string, details: string, dueDate?: string, labels?: string[], priority?: Priority) => void;
   onDeleteCard: (columnId: string, cardId: string) => void;
+  onEditCard: (
+    cardId: string,
+    edits: { title: string; details: string; dueDate?: string; labels?: string[]; priority?: Priority }
+  ) => void;
+  onDeleteColumn?: (columnId: string) => void;
   className?: string;
 };
 
@@ -20,6 +25,8 @@ export const KanbanColumn = ({
   onRename,
   onAddCard,
   onDeleteCard,
+  onEditCard,
+  onDeleteColumn,
   className,
 }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
@@ -49,6 +56,25 @@ export const KanbanColumn = ({
             aria-label="Column title"
           />
         </div>
+        {onDeleteColumn ? (
+          <button
+            type="button"
+            onClick={() => onDeleteColumn(column.id)}
+            className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--gray-text)] transition hover:bg-[var(--surface)] hover:text-red-500"
+            aria-label={`Delete column ${column.title}`}
+            data-testid={`delete-column-${column.id}`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M5 7h14M10 7V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2m-7 0 1 13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-13M10 11v6m4-6v6"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        ) : null}
       </div>
       <div className="mt-4 flex flex-1 flex-col gap-3">
         <SortableContext items={column.cardIds} strategy={verticalListSortingStrategy}>
@@ -57,6 +83,7 @@ export const KanbanColumn = ({
               key={card.id}
               card={card}
               onDelete={(cardId) => onDeleteCard(column.id, cardId)}
+              onEdit={onEditCard}
             />
           ))}
         </SortableContext>
@@ -67,7 +94,9 @@ export const KanbanColumn = ({
         )}
       </div>
       <NewCardForm
-        onAdd={(title, details) => onAddCard(column.id, title, details)}
+        onAdd={(title, details, dueDate, labels, priority) =>
+          onAddCard(column.id, title, details, dueDate, labels, priority)
+        }
       />
     </section>
   );

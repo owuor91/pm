@@ -7,26 +7,36 @@ import { initialData } from "@/lib/kanban";
 
 vi.mock("@/lib/api");
 
-const getFirstColumn = () => screen.getAllByTestId(/column-/i)[0];
+const getColumns = () => screen.getAllByTestId(/^column-/);
+const getFirstColumn = () => getColumns()[0];
+
+const boardSummary: api.BoardSummary = {
+  id: 1,
+  name: "My Board",
+  role: "owner",
+  updated_at: "",
+};
 
 describe("KanbanBoard", () => {
   beforeEach(() => {
-    vi.mocked(api.getBoard).mockResolvedValue(initialData);
-    vi.mocked(api.saveBoard).mockResolvedValue({ state: "" });
+    vi.clearAllMocks();
+    vi.mocked(api.listBoards).mockResolvedValue([boardSummary]);
+    vi.mocked(api.getBoardState).mockResolvedValue(initialData);
+    vi.mocked(api.saveBoardState).mockResolvedValue(undefined);
   });
 
   it("renders five columns", async () => {
-    render(<KanbanBoard userId={1} />);
+    render(<KanbanBoard userId={1} username="user" />);
 
     await waitFor(() => {
       expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
     });
 
-    expect(screen.getAllByTestId(/column-/i)).toHaveLength(5);
+    expect(getColumns()).toHaveLength(5);
   });
 
   it("renames a column", async () => {
-    render(<KanbanBoard userId={1} />);
+    render(<KanbanBoard userId={1} username="user" />);
 
     await waitFor(() => {
       expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
@@ -40,7 +50,7 @@ describe("KanbanBoard", () => {
   });
 
   it("adds and removes a card", async () => {
-    render(<KanbanBoard userId={1} />);
+    render(<KanbanBoard userId={1} username="user" />);
 
     await waitFor(() => {
       expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
@@ -67,5 +77,159 @@ describe("KanbanBoard", () => {
     await userEvent.click(deleteButton);
 
     expect(within(column).queryByText("New card")).not.toBeInTheDocument();
+  });
+
+  it("edits an existing card's title, details, due date, and labels", async () => {
+    render(<KanbanBoard userId={1} username="user" />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    const column = getFirstColumn();
+    const editButton = within(column).getByRole("button", { name: /edit align roadmap themes/i });
+    await userEvent.click(editButton);
+
+    const titleInput = within(column).getByLabelText(/edit card title/i);
+    await userEvent.clear(titleInput);
+    await userEvent.type(titleInput, "Updated title");
+
+    const labelsInput = within(column).getByLabelText(/edit labels/i);
+    await userEvent.type(labelsInput, "urgent, planning");
+
+    await userEvent.click(within(column).getByRole("button", { name: /^save$/i }));
+
+    expect(within(column).getByText("Updated title")).toBeInTheDocument();
+    expect(within(column).getByText("urgent")).toBeInTheDocument();
+    expect(within(column).getByText("planning")).toBeInTheDocument();
+  });
+
+  it("filters cards by search text", async () => {
+    render(<KanbanBoard userId={1} username="user" />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    await userEvent.type(screen.getByLabelText(/search cards/i), "roadmap");
+
+    expect(screen.getByText("Align roadmap themes")).toBeInTheDocument();
+    expect(screen.queryByText("Gather customer signals")).not.toBeInTheDocument();
+  });
+
+  it("creates a new board via the board picker", async () => {
+    vi.mocked(api.createBoard).mockResolvedValue({ id: 2, name: "Roadmap", role: "owner", updated_at: "" });
+
+    render(<KanbanBoard userId={1} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /new board/i }));
+    await userEvent.type(screen.getByLabelText(/new board name/i), "Roadmap");
+    await userEvent.click(screen.getByRole("button", { name: /create/i }));
+
+    expect(api.createBoard).toHaveBeenCalledWith("Roadmap");
+  });
+
+  it("shows an empty state when there are no boards", async () => {
+    vi.mocked(api.listBoards).mockResolvedValue([]);
+
+    render(<KanbanBoard userId={1} username="user" />);
+
+    expect(await screen.findByText(/create a board to get started/i)).toBeInTheDocument();
+  });
+
+  it("lets an editor leave a shared board but hides that option for owners", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(api.removeBoardMember).mockResolvedValue(undefined);
+    vi.mocked(api.listBoards).mockResolvedValue([
+      { id: 1, name: "Shared Board", role: "editor", updated_at: "" },
+    ]);
+
+    render(<KanbanBoard userId={7} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    const leaveButton = screen.getByRole("button", { name: /leave board/i });
+    await userEvent.click(leaveButton);
+
+    await waitFor(() => {
+      expect(api.removeBoardMember).toHaveBeenCalledWith(1, 7);
+    });
+  });
+
+  it("does not show a leave-board option for owners", async () => {
+    render(<KanbanBoard userId={1} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole("button", { name: /leave board/i })).not.toBeInTheDocument();
+  });
+
+  it("adds a new column via the Add column button", async () => {
+    render(<KanbanBoard userId={1} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    expect(getColumns()).toHaveLength(5);
+    await userEvent.click(screen.getByRole("button", { name: /add column/i }));
+    expect(getColumns()).toHaveLength(6);
+    expect(screen.getByDisplayValue("New Column")).toBeInTheDocument();
+  });
+
+  it("deletes an empty column without confirmation", async () => {
+    render(<KanbanBoard userId={1} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /add column/i }));
+    expect(getColumns()).toHaveLength(6);
+
+    const newCol = getColumns()[5];
+    await userEvent.click(within(newCol).getByRole("button", { name: /delete column/i }));
+    expect(getColumns()).toHaveLength(5);
+  });
+
+  it("adds a card with a priority and shows the priority badge", async () => {
+    render(<KanbanBoard userId={1} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    const column = getFirstColumn();
+    await userEvent.click(within(column).getByRole("button", { name: /add a card/i }));
+    await userEvent.type(within(column).getByPlaceholderText(/card title/i), "Priority task");
+
+    const prioritySelect = within(column).getByLabelText(/priority/i);
+    await userEvent.selectOptions(prioritySelect, "high");
+    await userEvent.click(within(column).getByRole("button", { name: /add card/i }));
+
+    expect(within(column).getByText("Priority task")).toBeInTheDocument();
+    expect(within(column).getByText("High")).toBeInTheDocument();
+  });
+
+  it("filters cards by priority", async () => {
+    vi.mocked(api.getBoardState).mockResolvedValue({
+      ...initialData,
+      cards: {
+        ...initialData.cards,
+        "card-1": { ...initialData.cards["card-1"], priority: "high" },
+      },
+    });
+
+    render(<KanbanBoard userId={1} username="user" />);
+    await waitFor(() => {
+      expect(screen.queryByText("Loading board...")).not.toBeInTheDocument();
+    });
+
+    await userEvent.selectOptions(screen.getByLabelText(/filter by priority/i), "high");
+
+    expect(screen.getByText("Align roadmap themes")).toBeInTheDocument();
+    expect(screen.queryByText("Gather customer signals")).not.toBeInTheDocument();
   });
 });

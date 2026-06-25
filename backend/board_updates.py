@@ -4,7 +4,14 @@ import copy
 from typing import Any
 from uuid import uuid4
 
-from backend.schemas import BoardUpdate, NewCard
+from backend.schemas import VALID_PRIORITIES, BoardUpdate, NewCard
+
+
+def _unique_id(existing: set[str], prefix: str) -> str:
+    candidate = f"{prefix}-{uuid4().hex[:12]}"
+    while candidate in existing:
+        candidate = f"{prefix}-{uuid4().hex[:12]}"
+    return candidate
 
 
 def apply_board_update(board_state: dict[str, Any], update: BoardUpdate) -> dict[str, Any]:
@@ -23,6 +30,24 @@ def apply_board_update(board_state: dict[str, Any], update: BoardUpdate) -> dict
             column_by_id[column["id"]] = column
             if not isinstance(column.get("cardIds"), list):
                 column["cardIds"] = []
+
+    if update.newColumns:
+        existing_col_ids = set(column_by_id.keys())
+        for new_col in update.newColumns:
+            title = (new_col.title or "").strip() or "New Column"
+            col_id = new_col.id
+            if not col_id or col_id in existing_col_ids:
+                col_id = _unique_id(existing_col_ids, "col")
+            existing_col_ids.add(col_id)
+            col: dict[str, Any] = {"id": col_id, "title": title, "cardIds": []}
+            columns.append(col)
+            column_by_id[col_id] = col
+
+    if update.deletedColumnIds:
+        deleted_cols = set(update.deletedColumnIds)
+        columns[:] = [col for col in columns if col.get("id") not in deleted_cols]
+        for col_id in deleted_cols:
+            column_by_id.pop(col_id, None)
 
     if update.updatedColumns:
         for column_update in update.updatedColumns:
@@ -49,6 +74,15 @@ def apply_board_update(board_state: dict[str, Any], update: BoardUpdate) -> dict
                 card["title"] = card_update.title
             if card_update.details is not None:
                 card["details"] = card_update.details
+            if card_update.dueDate is not None:
+                card["dueDate"] = card_update.dueDate
+            if card_update.labels is not None:
+                card["labels"] = card_update.labels
+            if card_update.priority is not None:
+                if card_update.priority in VALID_PRIORITIES:
+                    card["priority"] = card_update.priority
+                else:
+                    card.pop("priority", None)
 
             if card_update.columnId and card_update.columnId in column_by_id:
                 for column in column_by_id.values():
@@ -58,6 +92,7 @@ def apply_board_update(board_state: dict[str, Any], update: BoardUpdate) -> dict
                     target["cardIds"].append(card_update.id)
 
     if update.newCards:
+        existing_card_ids = set(cards.keys())
         for new_card in update.newCards:
             title = new_card.title.strip()
             if not title:
@@ -68,13 +103,19 @@ def apply_board_update(board_state: dict[str, Any], update: BoardUpdate) -> dict
                 continue
 
             card_id = new_card.id
-            if not card_id or card_id in cards:
-                card_id = f"ai-{uuid4().hex[:12]}"
-                while card_id in cards:
-                    card_id = f"ai-{uuid4().hex[:12]}"
+            if not card_id or card_id in existing_card_ids:
+                card_id = _unique_id(existing_card_ids, "ai")
+            existing_card_ids.add(card_id)
 
             details = (new_card.details or "").strip() or "No details yet."
-            cards[card_id] = {"id": card_id, "title": title, "details": details}
+            card: dict[str, Any] = {"id": card_id, "title": title, "details": details}
+            if new_card.dueDate is not None:
+                card["dueDate"] = new_card.dueDate
+            if new_card.labels is not None:
+                card["labels"] = new_card.labels
+            if new_card.priority is not None and new_card.priority in VALID_PRIORITIES:
+                card["priority"] = new_card.priority
+            cards[card_id] = card
 
             target = column_by_id[column_id]
             if card_id not in target["cardIds"]:
