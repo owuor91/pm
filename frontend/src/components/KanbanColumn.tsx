@@ -11,6 +11,7 @@ type KanbanColumnProps = {
   onRename: (columnId: string, title: string) => void;
   onAddCard: (columnId: string, title: string, details: string) => void;
   onDeleteCard: (columnId: string, cardId: string) => void;
+  className?: string;
 };
 
 export const KanbanColumn = ({
@@ -19,6 +20,7 @@ export const KanbanColumn = ({
   onRename,
   onAddCard,
   onDeleteCard,
+  className,
 }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
@@ -26,8 +28,9 @@ export const KanbanColumn = ({
     <section
       ref={setNodeRef}
       className={clsx(
-        "flex min-h-[520px] flex-col rounded-3xl border border-[var(--stroke)] bg-[var(--surface-strong)] p-4 shadow-[var(--shadow)] transition",
-        isOver && "ring-2 ring-[var(--accent-yellow)]"
+        "flex min-h-[420px] flex-col rounded-2xl border border-[var(--stroke)] bg-[var(--surface-strong)] p-3 shadow-[var(--shadow)] transition sm:min-h-[520px] sm:rounded-3xl sm:p-4",
+        isOver && "ring-2 ring-[var(--accent-yellow)]",
+        className
       )}
       data-testid={`column-${column.id}`}
     >
