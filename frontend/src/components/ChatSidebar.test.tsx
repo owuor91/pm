@@ -23,7 +23,7 @@ describe("ChatSidebar", () => {
       board: initialData,
     });
 
-    render(<ChatSidebar userId={1} onBoardUpdate={onBoardUpdate} onBeforeSend={onBeforeSend} />);
+    render(<ChatSidebar boardId={1} onBoardUpdate={onBoardUpdate} onBeforeSend={onBeforeSend} />);
 
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/message the ai/i), "Add a card");

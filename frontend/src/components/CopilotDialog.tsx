@@ -6,12 +6,12 @@ import { ChatSidebar } from "@/components/ChatSidebar";
 import type { BoardData } from "@/lib/kanban";
 
 type CopilotDialogProps = {
-  userId: number;
+  boardId: number;
   onBoardUpdate: (board: BoardData) => void;
   onBeforeSend?: () => Promise<void>;
 };
 
-export const CopilotDialog = ({ userId, onBoardUpdate, onBeforeSend }: CopilotDialogProps) => {
+export const CopilotDialog = ({ boardId, onBoardUpdate, onBeforeSend }: CopilotDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export const CopilotDialog = ({ userId, onBoardUpdate, onBeforeSend }: CopilotDi
           <div className="absolute bottom-6 left-6 w-[380px] max-w-[calc(100vw-3rem)]">
             <div className="relative">
               <ChatSidebar
-                userId={userId}
+                boardId={boardId}
                 onBoardUpdate={onBoardUpdate}
                 onBeforeSend={onBeforeSend}
                 className="max-h-[70vh] w-full"

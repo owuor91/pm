@@ -6,14 +6,14 @@ import { aiChat, type ChatMessage } from "@/lib/api";
 import type { BoardData } from "@/lib/kanban";
 
 type ChatSidebarProps = {
-  userId: number;
+  boardId: number;
   onBoardUpdate: (board: BoardData) => void;
   onBeforeSend?: () => Promise<void>;
   className?: string;
 };
 
 export const ChatSidebar = ({
-  userId,
+  boardId,
   onBoardUpdate,
   onBeforeSend,
   className,
@@ -57,7 +57,7 @@ export const ChatSidebar = ({
         await onBeforeSend();
       }
 
-      const result = await aiChat(userId, nextPrompt, conversation);
+      const result = await aiChat(boardId, nextPrompt, conversation);
       onBoardUpdate(result.board as BoardData);
       setMessages((prev) => [...prev, { role: "assistant", content: result.message }]);
     } catch (err) {

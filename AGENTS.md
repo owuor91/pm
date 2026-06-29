@@ -9,13 +9,16 @@ This project is building a Project Management App. Key features:
 - The cards on the Kanban board can be moved with drag and drop, and edited
 - There is an AI chat feature in a sidebar; the AI is able to create / edit / move one or more cards
 
-## Limitations
+## Limitations (superseded)
 
-For the MVP, there will only be a user sign in (hardcoded to 'user' and 'password') but the database will support multiple users for future.
+The original MVP scope below has been superseded: the app now supports real signup/login with
+cookie-based sessions (the hardcoded `user`/`password` account still exists as a seeded default),
+multiple Kanban boards per user, and board sharing across users. See `CLAUDE.md` for the current
+architecture. Kept here for historical context on the initial MVP cut:
 
-For the MVP, there will only be 1 Kanban board per signed in user.
-
-For the MVP, this will run locally (in a docker container)
+- There was only a hardcoded user sign in (`user`/`password`), though the database supported multiple users for future.
+- There was only 1 Kanban board per signed in user.
+- This runs locally (in a docker container) — still true today.
 
 ## Technical Decisions
 
